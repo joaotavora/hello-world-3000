@@ -1,6 +1,5 @@
 format:
   tab_size: 2
-  line_width: 100
   dangle_parens: true
 
 parse:
