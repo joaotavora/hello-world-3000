@@ -34,7 +34,7 @@ greeter-%: build-%
 	build-$*/greeter/Greeter --version
 
 clean:
-	rm -rf build-*
+	rm -rf build*
 
 .PHONY: clean all watch doc
 .SECONDARY: build-release build-debug build-coverage
