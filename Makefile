@@ -1,15 +1,15 @@
 export CPM_SOURCE_CACHE=${HOME}/.cache/CPM
 export CPM_USE_NAMED_CACHE_DIRECTORIES=true
-CMAKE_FLAGS = -DUSE_CCACHE=YES -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+CMAKE_FLAGS = -DUSE_CCACHE=YES -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+              -DGREETER_ENABLE_TESTS=YES -DGREETER_ENABLE_STANDALONE=YES
 
 all: release debug coverage
 
 build-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -G"Unix Makefiles"
-build-debug: CMAKE_FLAGS+=-DUSE_SANITIZER='Address;Undefined'
-build-coverage: CMAKE_FLAGS+=-DENABLE_TEST_COVERAGE=1
+build-debug: CMAKE_FLAGS+=-DUSE_SANITIZER='Address;Undefined' -DENABLE_TEST_COVERAGE=1
 
 build-%:
-	cmake $(CMAKE_FLAGS) -Scmake/all -B build-$*
+	cmake $(CMAKE_FLAGS) -S. -B build-$*
 
 compile_commands.json: build-debug
 	ln -sf build-debug/compile_commands.json compile_commands.json
@@ -31,7 +31,7 @@ doc: build-debug
 
 greeter-%: build-%
 	cmake --build build-$* --target GreeterExec
-	build-$*/greeter/Greeter --version
+	build-$*/Greeter --version
 
 clean:
 	rm -rf build*

@@ -27,8 +27,8 @@ jobs:
 
       - name: Build
         run: |
-          cmake -Sdoc -Bbuild
-          cmake --build build --target GenerateDocs
+          cmake -DGREETER_ENABLE_DOC=YES -S. -Bbuild 
+          cmake --build build --target GreeterDocs
 
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
