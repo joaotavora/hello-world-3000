@@ -27,7 +27,7 @@ jobs:
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
       - name: configure
-        run: make build-debug
+        run: cmake -DGREETER_ENABLE_TESTS=YES -S. -Bbuild-debug
 
       - name: build
         run: cmake --build build-debug -j4
