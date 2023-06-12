@@ -32,7 +32,11 @@ jobs:
         run: cmake --build build-debug -j4
 
       - name: run
-        run: ./build-debug/Greeter
+        run: |
+          ./build-debug/Greeter
+          ./build-debug/Greeter -l martian || true
+          ./build-debug/Greeter --help
+          ./build-debug/Greeter --version
 
       - name: collect code coverage
         run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
