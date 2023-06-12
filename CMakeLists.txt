@@ -5,27 +5,37 @@ project(Greeter VERSION 1.0 LANGUAGES CXX)
 include(cmake/CPM.cmake)
 include(cmake/tools.cmake)
 
-# Library
-CPMAddPackage(
-  NAME fmt GIT_TAG 9.1.0 GITHUB_REPOSITORY fmtlib/fmt
-  OPTIONS "FMT_INSTALL YES" # create an installable target
-)
+option(ENABLE_STANDALONE "Enable 'GreeterExec' target" OFF)
+option(ENABLE_TESTS "Enable 'GreeterTests' target" OFF)
+option(ENABLE_DOCS "Enable 'GreeterDocs' target" OFF)
+option(ENABLE_LIB "Enable main 'Greeter' target" ON)
+option(ENABLE_INSTALL "Enable 'install' target" ON)
+option(ENABLE_FORMATTER
+       "Enable 'format', 'check-format' and 'fix-format' targets" OFF)
 
-file(GLOB_RECURSE headers CONFIGURE_DEPENDS "./include/*.h")
-file(GLOB_RECURSE sources CONFIGURE_DEPENDS "./src/libgreeter/*.cpp")
-add_library(${PROJECT_NAME} ${headers} ${sources})
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
-target_compile_options(${PROJECT_NAME}
-                       PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+if(ENABLE_LIB)
+  CPMAddPackage(
+    NAME fmt GIT_TAG 9.1.0 GITHUB_REPOSITORY fmtlib/fmt
+    OPTIONS "FMT_INSTALL YES" # create an installable target
+  )
 
-target_include_directories(
-  ${PROJECT_NAME}
-  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-         $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+  file(GLOB_RECURSE headers CONFIGURE_DEPENDS "./include/*.h")
+  file(GLOB_RECURSE sources CONFIGURE_DEPENDS "./src/libgreeter/*.cpp")
+  add_library(${PROJECT_NAME} ${headers} ${sources})
+  set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
+  target_compile_options(
+    ${PROJECT_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
+  target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+endif()
 
 # Executable
-if(GREETER_ENABLE_STANDALONE)
+if(ENABLE_STANDALONE)
+  assert(ENABLE_LIB "Can't configure executable with ENABLE_LIB=OFF!")
   CPMAddPackage(
     GITHUB_REPOSITORY jarro2783/cxxopts VERSION 3.0.0
     OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO"
@@ -40,12 +50,11 @@ if(GREETER_ENABLE_STANDALONE)
 endif()
 
 # Self-tests
-if(GREETER_ENABLE_TESTS)
+if(ENABLE_TESTS)
+  assert(ENABLE_LIB "Can't configure tests with ENABLE_LIB=OFF!")
   option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
 
   CPMAddPackage("gh:doctest/doctest@2.4.9")
-  CPMAddPackage("gh:TheLartians/Format.cmake@1.7.3") # FIXME: needs separate
-                                                     # option
 
   file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp)
   add_executable(GreeterTests ${sources})
@@ -73,7 +82,7 @@ if(GREETER_ENABLE_TESTS)
 endif()
 
 # Documentation
-if(GREETER_ENABLE_DOC)
+if(ENABLE_DOCS)
   CPMAddPackage("gh:mosra/m.css#a0d292ec311b97fefd21e93cdefb60f88d19ede6")
 
   set(DOXYGEN_PROJECT_NAME Greeter)
@@ -93,16 +102,23 @@ if(GREETER_ENABLE_DOC)
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
+if(ENABLE_FORMATTER)
+  CPMAddPackage("gh:TheLartians/Format.cmake@1.7.3")
+endif()
+
 # Installable target
-CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
-string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
-packageProject(
-  NAME ${PROJECT_NAME}
-  VERSION ${PROJECT_VERSION}
-  NAMESPACE ${PROJECT_NAME}
-  BINARY_DIR ${PROJECT_BINARY_DIR}
-  INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include
-  INCLUDE_DESTINATION include/${PROJECT_NAME}-${PROJECT_VERSION}
-  VERSION_HEADER "${VERSION_HEADER_LOCATION}"
-  COMPATIBILITY SameMajorVersion
-  DEPENDENCIES "fmt 9.1.0")
+if(ENABLE_INSTALL)
+  assert(ENABLE_LIB "Can't configure install with ENABLE_LIB=OFF!")
+  CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
+  string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
+  packageProject(
+    NAME ${PROJECT_NAME}
+    VERSION ${PROJECT_VERSION}
+    NAMESPACE ${PROJECT_NAME}
+    BINARY_DIR ${PROJECT_BINARY_DIR}
+    INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include
+    INCLUDE_DESTINATION include/${PROJECT_NAME}-${PROJECT_VERSION}
+    VERSION_HEADER "${VERSION_HEADER_LOCATION}"
+    COMPATIBILITY SameMajorVersion
+    DEPENDENCIES "fmt 9.1.0")
+endif()

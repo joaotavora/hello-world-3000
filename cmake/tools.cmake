@@ -7,6 +7,12 @@ if(NOT PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   return()
 endif()
 
+macro(assert test comment)
+  if(NOT ${test})
+    message(FATAL_ERROR "Assertion failed: ${comment}")
+  endif()
+endmacro()
+
 include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
 
 # enables sanitizers support using the the `USE_SANITIZER` flag available values

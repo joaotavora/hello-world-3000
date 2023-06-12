@@ -26,12 +26,10 @@ jobs:
           pip3 install jinja2 Pygments
 
       - name: Build
-        run: |
-          cmake -DGREETER_ENABLE_DOC=YES -S. -Bbuild 
-          cmake --build build --target GreeterDocs
+        run: make doc
 
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/doxygen/html
+          publish_dir: ./build-docs/doxygen/html
