@@ -5,15 +5,21 @@ project(Greeter VERSION 1.0 LANGUAGES CXX)
 include(cmake/CPM.cmake)
 include(cmake/tools.cmake)
 
-option(ENABLE_STANDALONE "Enable 'GreeterExec' target" OFF)
-option(ENABLE_TESTS "Enable 'GreeterTests' target" OFF)
-option(ENABLE_DOCS "Enable 'GreeterDocs' target" OFF)
-option(ENABLE_LIB "Enable main 'Greeter' target" ON)
-option(ENABLE_INSTALL "Enable 'install' target" ON)
-option(ENABLE_FORMATTER
-       "Enable 'format', 'check-format' and 'fix-format' targets" OFF)
+set(GREETER_DEV OFF)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(GREETER_DEV ON)
+endif()
 
-if(ENABLE_LIB)
+option(GREETER_STANDALONE "Generate 'GreeterExec' target" ${GREETER_DEV})
+option(GREETER_TESTS "Generate 'GreeterTests' target" ${GREETER_DEV})
+option(GREETER_DOCS "Generate 'GreeterDocs' target" ${GREETER_DEV})
+option(GREETER_LIB "Generate main 'Greeter' target" ON)
+option(GREETER_INSTALL "Generate 'install' target" ON)
+option(GREETER_FORMATTER
+       "Generate 'format', 'check-format' and 'fix-format' targets"
+       ${GREETER_DEV})
+
+if(GREETER_LIB)
   CPMAddPackage(
     NAME fmt GIT_TAG 9.1.0 GITHUB_REPOSITORY fmtlib/fmt
     OPTIONS "FMT_INSTALL YES" # create an installable target
@@ -34,12 +40,12 @@ if(ENABLE_LIB)
 endif()
 
 # Executable
-if(ENABLE_STANDALONE)
-  assert(ENABLE_LIB "Can't configure executable with ENABLE_LIB=OFF!")
+if(GREETER_STANDALONE)
+  assert(GREETER_LIB "Can't configure executable with GREETER_LIB=OFF!")
   CPMAddPackage(
     GITHUB_REPOSITORY jarro2783/cxxopts VERSION 3.0.0
     OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO"
-            "CXXOPTS_ENABLE_INSTALL YES")
+            "CXXOPTS_GREETER_INSTALL YES")
 
   file(GLOB sources CONFIGURE_DEPENDS
        ${CMAKE_CURRENT_SOURCE_DIR}/src/greeter/*.cpp)
@@ -50,9 +56,9 @@ if(ENABLE_STANDALONE)
 endif()
 
 # Self-tests
-if(ENABLE_TESTS)
-  assert(ENABLE_LIB "Can't configure tests with ENABLE_LIB=OFF!")
-  option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
+if(GREETER_TESTS)
+  assert(GREETER_LIB "Can't configure tests with GREETER_LIB=OFF!")
+  option(GREETER_COVERAGE "Enable test coverage" OFF)
 
   CPMAddPackage("gh:doctest/doctest@2.4.9")
 
@@ -75,14 +81,14 @@ if(ENABLE_TESTS)
   include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
   doctest_discover_tests(GreeterTests)
 
-  if(ENABLE_TEST_COVERAGE)
+  if(GREETER_COVERAGE)
     target_compile_options(Greeter PUBLIC -O0 -g -fprofile-arcs -ftest-coverage)
     target_link_options(Greeter PUBLIC -fprofile-arcs -ftest-coverage)
   endif()
 endif()
 
 # Documentation
-if(ENABLE_DOCS)
+if(GREETER_DOCS)
   CPMAddPackage("gh:mosra/m.css#a0d292ec311b97fefd21e93cdefb60f88d19ede6")
 
   set(DOXYGEN_PROJECT_NAME Greeter)
@@ -102,13 +108,13 @@ if(ENABLE_DOCS)
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-if(ENABLE_FORMATTER)
+if(GREETER_FORMATTER)
   CPMAddPackage("gh:TheLartians/Format.cmake@1.7.3")
 endif()
 
 # Installable target
-if(ENABLE_INSTALL)
-  assert(ENABLE_LIB "Can't configure install with ENABLE_LIB=OFF!")
+if(GREETER_INSTALL)
+  assert(GREETER_LIB "Can't configure install with GREETER_LIB=OFF!")
   CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
   string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
   packageProject(
