@@ -19,6 +19,11 @@ run-%: build-%
 	cmake --build build-$* --target GreeterExec
 	build-$*/Greeter --version
 
+install-%: build-%
+	cmake --build build-$* --target install
+
+install: install-release
+
 clean:
 	rm -rf build*
 
