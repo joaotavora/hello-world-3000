@@ -22,6 +22,7 @@ run-%: build-%
 install-%: build-%
 	cmake --build build-$* --target install
 
+build: build-release
 install: install-release
 
 clean:
