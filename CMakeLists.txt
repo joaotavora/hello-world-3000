@@ -2,8 +2,28 @@ cmake_minimum_required(VERSION 3.14...3.22)
 
 project(Greeter VERSION 1.0 LANGUAGES CXX)
 
+# CPM
+set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
+set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")
 include(cmake/CPM.cmake)
-include(cmake/tools.cmake)
+
+
+set(USE_SANITIZER OFF CACHE STRING "What sanitizers to use")
+if(USE_SANITIZER)
+  message("USE_SANITIZER is '${USE_SANITIZER}'")
+  CPMAddPackage(
+    "gh:StableCoder/cmake-scripts#1f822d1fc87c8d7720c074cde8a278b44963c354")
+  # There are more tools here, but let's just use the sanitizer
+  include(${cmake-scripts_SOURCE_DIR}/sanitizers.cmake)
+endif()
+
+set(USE_CCACHE ON CACHE BOOL "Whether to use CCache")
+if(USE_CCACHE)
+  message("USE_CCACHE is '${USE_CCACHE}'")
+  CPMAddPackage("gh:TheLartians/Ccache.cmake@1.2.3")
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(GREETER_DEV OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -19,6 +39,7 @@ option(GREETER_FORMATTER
        "Generate 'format', 'check-format' and 'fix-format' targets"
        ${GREETER_DEV})
 
+# Main library
 if(GREETER_LIB)
   CPMAddPackage(
     NAME fmt GIT_TAG 9.1.0 GITHUB_REPOSITORY fmtlib/fmt
@@ -41,7 +62,7 @@ endif()
 
 # Executable
 if(GREETER_STANDALONE)
-  assert(GREETER_LIB "Can't configure executable with GREETER_LIB=OFF!")
+  # assert(GREETER_LIB "Can't configure executable with GREETER_LIB=OFF!")
   CPMAddPackage(
     GITHUB_REPOSITORY jarro2783/cxxopts VERSION 3.0.0
     OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO"
@@ -57,7 +78,7 @@ endif()
 
 # Self-tests
 if(GREETER_TESTS)
-  assert(GREETER_LIB "Can't configure tests with GREETER_LIB=OFF!")
+  # assert(GREETER_LIB "Can't configure tests with GREETER_LIB=OFF!")
   option(GREETER_COVERAGE "Enable test coverage" OFF)
 
   CPMAddPackage("gh:doctest/doctest@2.4.9")
@@ -76,10 +97,12 @@ if(GREETER_TESTS)
     target_compile_definitions(${PROJECT_NAME}
                                PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
   endif()
-  enable_testing()
 
   include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
   doctest_discover_tests(GreeterTests)
+
+  enable_testing()
+  add_test(NAME GreeterTests COMMAND GreeterTests)
 
   if(GREETER_COVERAGE)
     target_compile_options(Greeter PUBLIC -O0 -g -fprofile-arcs -ftest-coverage)
@@ -114,7 +137,7 @@ endif()
 
 # Installable target
 if(GREETER_INSTALL)
-  assert(GREETER_LIB "Can't configure install with GREETER_LIB=OFF!")
+  # assert(GREETER_LIB "Can't configure install with GREETER_LIB=OFF!")
   CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
   string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
   packageProject(

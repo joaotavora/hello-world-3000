@@ -1,31 +1,29 @@
-export CPM_SOURCE_CACHE=${HOME}/.cache/CPM
-export CPM_USE_NAMED_CACHE_DIRECTORIES=true
-CMAKE_FLAGS = -DUSE_CCACHE=YES \
-              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-
 build-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -G"Unix Makefiles"
-build-debug: CMAKE_FLAGS+=-DUSE_SANITIZER='Address;Undefined' -DGREETER_TEST_COVERAGE=1
-
-build-%: phony
-	cmake $(CMAKE_FLAGS) -S. -B build-$*
-
-watch-%:
-	find src include test -type f | entr -r -s 'make check-$*'
-
-check-%: build-%
-	cmake --build build-$* --target GreeterTests --target test
-
-run-%: build-%
-	cmake --build build-$* --target GreeterExec
-	build-$*/Greeter --version
-
-install-%: build-%
-	cmake --build build-$* --target install
+build-debug: CMAKE_FLAGS+=-DUSE_SANITIZER='Address;Undefined' -DGREETER_COVERAGE=1
 
 build: build-release
 install: install-release
 
-clean:
+configure-%: phony
+	cmake $(CMAKE_FLAGS) -S. -B build-$*
+
+build-%: configure-% phony
+	cmake --build build-$*
+
+watch-%: phony
+	find src include test -type f | entr -r -s 'make check-$*'
+
+check-%: configure-% phony
+	cmake --build build-$* --target GreeterTests --target test
+
+run-%: configure-% phony
+	cmake --build build-$* --target GreeterExec
+	build-$*/Greeter --version
+
+install-%: configure-% phony
+	cmake --build build-$* --target install
+
+clean: phony
 	rm -rf build*
 
 # FIXME: very questionable if I need cmake for formatting or docs
@@ -35,7 +33,7 @@ check-format: build-debug
 fix-format: build-debug
 	cmake --build build-debug --target fix-format
 
-doc:
+doc: phony
 	cmake -DGREETER_LIB=OFF -DGREETER_INSTALL=OFF \
               -DGREETER_DOCS=ON -S. -B build-docs
 	cmake --build build-docs --target GreeterDocs
@@ -43,4 +41,5 @@ doc:
 compile_commands.json: build-debug
 	ln -sf build-debug/compile_commands.json compile_commands.json
 
-.PHONY: clean all doc check-format fix-format phony
+.PHONY: phony
+
