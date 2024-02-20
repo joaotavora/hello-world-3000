@@ -131,10 +131,6 @@ if(GREETER_DOCS)
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-if(GREETER_FORMATTER)
-  CPMAddPackage("gh:TheLartians/Format.cmake@1.7.3")
-endif()
-
 # Installable target
 if(GREETER_INSTALL)
   # assert(GREETER_LIB "Can't configure install with GREETER_LIB=OFF!")

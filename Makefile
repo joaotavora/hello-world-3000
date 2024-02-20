@@ -26,12 +26,7 @@ install-%: configure-% phony
 clean: phony
 	rm -rf build*
 
-# FIXME: very questionable if I need cmake for formatting or docs
-check-format: build-debug
-	cmake --build build-debug --target check-format
-
-fix-format: build-debug
-	cmake --build build-debug --target fix-format
+# FIXME: very questionable if I need cmake for docs
 
 doc: phony
 	cmake -DGREETER_LIB=OFF -DGREETER_INSTALL=OFF \
