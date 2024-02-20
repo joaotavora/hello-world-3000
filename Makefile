@@ -6,7 +6,7 @@ CMAKE_FLAGS = -DUSE_CCACHE=YES \
 build-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -G"Unix Makefiles"
 build-debug: CMAKE_FLAGS+=-DUSE_SANITIZER='Address;Undefined' -DGREETER_TEST_COVERAGE=1
 
-build-%:
+build-%: phony
 	cmake $(CMAKE_FLAGS) -S. -B build-$*
 
 watch-%:
@@ -43,5 +43,4 @@ doc:
 compile_commands.json: build-debug
 	ln -sf build-debug/compile_commands.json compile_commands.json
 
-.PHONY: clean all doc check-format fix-format
-.SECONDARY: build-release build-debug
+.PHONY: clean all doc check-format fix-format phony
