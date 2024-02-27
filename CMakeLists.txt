@@ -46,7 +46,7 @@ target_include_directories(
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 
-target_link_libraries(Greeter PRIVATE fmt::fmt)
+target_link_libraries(Greeter PRIVATE fmt::fmt Boost::asio)
 
 if(GREETER_DEV)
   if(CMAKE_BUILD_TYPE EQUAL "Debug")
@@ -64,6 +64,13 @@ if(GREETER_DEV)
   CPMAddPackage(
     NAME fmt GIT_TAG 10.2.1 GITHUB_REPOSITORY fmtlib/fmt
     OPTIONS "FMT_INSTALL YES" # create an installable target
+  )
+  CPMAddPackage(
+    NAME Boost
+    VERSION 1.84.0
+    URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
+    URL_HASH SHA256=2e64e5d79a738d0fa6fb546c6e5c2bd28f88d268a2a080546f74e5ff98f29d0e
+    OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES process\\\;asio" # Note the escapes!
   )
 
   CPMAddPackage(
@@ -102,3 +109,12 @@ endif()
 
 find_package(cxxopts REQUIRED)
 find_package(fmt REQUIRED)
+
+# Boost needs this, since system installed Boost doesn't bring in
+# targets like Boost::asio
+if(NOT GREETER_DEV)
+  find_package(Boost REQUIRED)
+  add_library(BoostAsioProxy INTERFACE)
+  target_link_libraries(BoostAsioProxy INTERFACE ${Boost_LIBRARIES})
+  add_library(Boost::asio ALIAS BoostAsioProxy)
+endif()

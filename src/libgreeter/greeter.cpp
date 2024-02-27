@@ -1,6 +1,8 @@
 #include <fmt/format.h>
 #include <greeter/greeter.h>
 
+#include <boost/asio.hpp>
+
 using namespace greeter;
 
 Greeter::Greeter(std::string _name) : name(std::move(_name)) {}
