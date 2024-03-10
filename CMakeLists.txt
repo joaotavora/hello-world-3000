@@ -2,26 +2,8 @@ cmake_minimum_required(VERSION 3.14...3.22)
 
 project(Greeter VERSION 1.0.0 LANGUAGES CXX)
 
-if(GREETER_DEV OR GREETER_DOCS)
-  set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
-  set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")
-  include(cmake/CPM.cmake)
-endif()
-
 if(GREETER_DOCS)
-  CPMAddPackage("gh:mosra/m.css#a0d292ec311b97fefd21e93cdefb60f88d19ede6")
-
-  set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doxygen")
-  configure_file(./doc/Doxyfile ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-  configure_file(./doc/conf.py ${CMAKE_CURRENT_BINARY_DIR}/conf.py)
-
-  add_custom_target(
-    GreeterDocs
-    ${CMAKE_COMMAND} -E make_directory "${DOXYGEN_OUTPUT_DIRECTORY}"
-    COMMAND "${m.css_SOURCE_DIR}/documentation/doxygen.py"
-            "${CMAKE_CURRENT_BINARY_DIR}/conf.py"
-    COMMAND echo "Docs written to: ${DOXYGEN_OUTPUT_DIRECTORY}"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+  add_subdirectory("./doc")
   return()
 endif()
 
@@ -49,6 +31,10 @@ target_include_directories(
 target_link_libraries(Greeter PRIVATE fmt::fmt Boost::asio)
 
 if(GREETER_DEV)
+  set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
+  set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")
+  include(cmake/CPM.cmake)
+
   if(CMAKE_BUILD_TYPE EQUAL "Debug")
     message("USE_SANITIZER is '${USE_SANITIZER}'")
     CPMAddPackage(
