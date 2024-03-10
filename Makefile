@@ -1,8 +1,13 @@
-build-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -G"Unix Makefiles"
-build-debug: CMAKE_FLAGS+=-DUSE_SANITIZER='Address;Undefined' -DGREETER_COVERAGE=1
+# Targets for non-devs (i.e. those who want to supply dependencies
+# themselves)
+build: build-nodev
+build-nodev: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release
+install: install-nodev
 
-build: build-release
-install: install-release
+# Targets for devs and CI
+#
+configure-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -DGREETER_DEV=ON
+configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGREETER_DEV=ON
 
 configure-%: phony
 	cmake $(CMAKE_FLAGS) -S. -B build-$*
@@ -11,30 +16,30 @@ build-%: configure-% phony
 	cmake --build build-$*
 
 watch-%: phony
-	find src include test -type f | entr -r -s 'make check-$*'
+	find CMakeLists.txt src include test -type f | entr -r -s 'make check-$*'
 
-check-%: configure-% phony
-	cmake --build build-$* --target GreeterTests --target test
+check-%: build-% phony
+	ctest --test-dir build-$*
 
 run-%: configure-% phony
 	cmake --build build-$* --target GreeterExec
 	build-$*/Greeter --version
 
-install-%: configure-% phony
-	cmake --build build-$* --target install
-
 clean: phony
 	rm -rf build*
 
-# FIXME: very questionable if I need cmake for docs
-
 doc: phony
-	cmake -DGREETER_LIB=OFF -DGREETER_INSTALL=OFF \
-              -DGREETER_DOCS=ON -S. -B build-docs
+	cmake -DGREETER_DOCS=ON -S. -B build-docs
 	cmake --build build-docs --target GreeterDocs
 
 compile_commands.json: build-debug
 	ln -sf build-debug/compile_commands.json compile_commands.json
+
+check-format: phony
+	find src include test -type f | xargs clang-format --dry-run --Werror
+
+fix-format: phony
+	find src include test -type f | xargs clang-format -i
 
 .PHONY: phony
 
