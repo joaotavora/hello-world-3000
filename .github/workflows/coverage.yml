@@ -28,16 +28,8 @@ jobs:
       - name: build
         run: make build-debug
 
-      - name: run
-        run: |
-          ./build-debug/Greeter
-          ./build-debug/Greeter -l martian || true
-          ./build-debug/Greeter -l en
-          ./build-debug/Greeter -l de
-          ./build-debug/Greeter -l es
-          ./build-debug/Greeter -l fr
-          ./build-debug/Greeter --help
-          ./build-debug/Greeter --version
+      - name: run tests the executable
+        run: make coverage-debug
 
       - name: collect code coverage
         run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"

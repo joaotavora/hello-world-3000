@@ -19,6 +19,18 @@ watch-%: phony
 check-%: build-% phony
 	ctest --test-dir build-$*
 
+coverage-%: CMAKE_FLAGS+=-DGREETER_COVERAGE=ON
+coverage-%: check-%
+	./build-debug/Greeter
+	./build-debug/Greeter -l martian || true
+	./build-debug/Greeter -l en
+	./build-debug/Greeter -l de
+	./build-debug/Greeter -l es
+	./build-debug/Greeter -l fr
+	./build-debug/Greeter --help
+	./build-debug/Greeter --version
+	find build-$* -type f -iname "*.gcda" | xargs gcov -s $$PWD -r -t
+
 run-%: configure-% phony
 	cmake --build build-$* --target GreeterExec
 	build-$*/Greeter --version

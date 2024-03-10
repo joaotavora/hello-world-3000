@@ -33,6 +33,3 @@ jobs:
       - name: test
         run: |
           ctest --test-dir build-debug --build-config Debug
-
-      - name: collect code coverage
-        run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
