@@ -8,8 +8,12 @@ on:
 env:
   CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_modules
 
+
+
 jobs:
   build:
+    permissions:
+      contents: write  
     name: Build and publish documentation
     runs-on: macos-latest
     steps:
