@@ -1,11 +1,9 @@
-# Targets for non-devs (i.e. those who want to supply dependencies
-# themselves)
+# Targets for non-devs (who must supply dependencies themselves)
 build: build-nodev
 build-nodev: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release
 install: install-nodev
 
-# Targets for devs and CI
-#
+# Targets for devs and CI (dependencies fetched via CPM.cmake)
 configure-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -DGREETER_DEV=ON
 configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGREETER_DEV=ON
 
@@ -42,4 +40,3 @@ fix-format: phony
 	find src include test -type f | xargs clang-format -i
 
 .PHONY: phony
-
