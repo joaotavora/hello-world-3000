@@ -5,7 +5,7 @@ install: install-nodev
 
 # Targets for devs and CI (dependencies fetched via CPM.cmake)
 configure-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -DGREETER_DEV=ON
-configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGREETER_DEV=ON
+configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGREETER_DEV=ON -DGREETER_COVERAGE=ON
 
 configure-%: phony
 	cmake $(CMAKE_FLAGS) -S. -B build-$*
