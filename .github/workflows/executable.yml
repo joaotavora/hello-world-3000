@@ -32,6 +32,10 @@ jobs:
         run: |
           ./build-debug/Greeter
           ./build-debug/Greeter -l martian || true
+          ./build-debug/Greeter -l en
+          ./build-debug/Greeter -l de
+          ./build-debug/Greeter -l es
+          ./build-debug/Greeter -l fr
           ./build-debug/Greeter --help
           ./build-debug/Greeter --version
 
