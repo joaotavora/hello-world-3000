@@ -2,101 +2,108 @@
 #include <greeter/version.h>
 
 #include <cxxopts.hpp>
-#include <iostream>
-#include <string>
 
-#define BOOST_ASIO_NO_DEPRECATED
 #include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <iostream>
-#include <string>
-#include <inja/inja.hpp>
-#include <nlohmann/json.hpp>
+#include <deque>
+#include <istream>
+#include <memory>
 
-namespace beast = boost::beast; // from <boost/beast.hpp>
-namespace http = beast::http;   // from <boost/beast/http.hpp>
-namespace net = boost::asio;    // from <boost/asio.hpp>
-using tcp = net::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+namespace asio = boost::asio;
+using tcp = boost::asio::ip::tcp;
 
 
-
-// Function to handle the HTTP request and send back a response
-void handle_request([[maybe_unused]] http::request<http::string_body>&& req, http::response<http::string_body>& res) {
-    nlohmann::json data;
-    data["title"] = "Hello, World!";
-    data["message"] = "This is a message from Boost.Beast and Inja.";
-
-    inja::Environment env;
-    std::string rendered_html = env.render_file("template.html", data);
-
-    res.result(http::status::ok);
-    res.set(http::field::content_type, "text/html");
-    res.body() = rendered_html;
-    res.prepare_payload();
-}
-
-// Asynchronous server session
-class session : public std::enable_shared_from_this<session> {
-    tcp::socket socket_;
-    beast::flat_buffer buffer_;
-    http::request<http::string_body> request_;
-    http::response<http::string_body> response_;
+// ConnectionHandler is the type that is going to be instantiated for
+// each of these connections.
+template <typename ConnectionHandler> class asio_generic_server {
+  using shared_handler_t = std::shared_ptr<ConnectionHandler>;
 
 public:
-    explicit session(tcp::socket socket) : socket_(std::move(socket)) {}
+  asio_generic_server(int thread_count = 1)
+  : thread_count_(thread_count), acceptor_(io_service_) {}
 
-    void start() { do_read(); }
+  void start_server([[maybe_unused]] uint16_t port) {
+    auto handler = std::make_shared<ConnectionHandler>(io_service_);
+
+    tcp::endpoint endpoint{tcp::v4(), port};
+    acceptor_.open(endpoint.protocol());
+    acceptor_.set_option(tcp::acceptor::reuse_address(true));
+    acceptor_.bind(endpoint);
+    acceptor_.listen();
+    std::cerr << "Should be listening on " << std::to_string(port) << "\n";
+
+    acceptor_.async_accept(handler->socket(), [=](auto ec) {
+      std::cerr << "Handling new conn!\n";
+      handle_new_connection(handler, ec);
+    });
+
+
+    io_service_.run();
+    // for (int i = 0; i < thread_count_; ++i) {
+    //   thread_pool_.emplace_back([=]{});
+    // }
+  }
 
 private:
-    void do_read() {
-        auto self = shared_from_this();
-        http::async_read(
-            socket_, buffer_, request_,
-            [this, self](beast::error_code ec,
-                         [[maybe_unused]] std::size_t bytes_transferred) {
-                             if (!ec) {
-                                 handle_request(std::move(request_), response_);
-                                 do_write();
-                             }
-                         });
-    }
+  void handle_new_connection(shared_handler_t handler,
+                             boost::system::error_code const& error) {
+    if (error) return;
 
-    void do_write() {
-        auto self = shared_from_this();
-        http::async_write(
-            socket_, response_,
-            [this, self](beast::error_code ec,
-                         [[maybe_unused]] std::size_t bytes_transferred) {
-                            socket_.shutdown(tcp::socket::shutdown_send, ec);
-                          });
-    }
+    handler->start();
+
+    auto new_handler = std::make_shared<ConnectionHandler>(io_service_);
+
+    acceptor_.async_accept(new_handler->socket(), [=](auto ec) {
+      handle_new_connection(handler, ec);
+    });
+  }
+  int thread_count_;
+  std::vector<std::thread> thread_pool_;
+  asio::io_context io_service_;
+  tcp::acceptor acceptor_;
 };
 
-// Listening server
-class server {
-    tcp::acceptor acceptor_;
-    tcp::socket socket_;
-
+class chat_handler : public std::enable_shared_from_this<chat_handler> {
 public:
-  server(net::io_context& ioc, short port)
-      : acceptor_(ioc, {tcp::v4(), static_cast<net::ip::port_type>(port)}),
-      socket_(ioc) {
-        do_accept();
-    }
+  chat_handler(asio::io_context& service)
+  : service_(service), socket_(service), write_strand_(service) {}
+  tcp::socket& socket() { return socket_; }
+  void start() { read_packet(); }
 
 private:
-    void do_accept() {
-        acceptor_.async_accept(socket_,
-                               [this](beast::error_code ec) {
-                                   if (!ec) std::make_shared<session>(std::move(socket_))->start();
-                                   do_accept();
-                               });
-    }
-};
+  void read_packet(){
+    asio::async_read_until(socket_, in_packet_, '\0',
+                           [me = shared_from_this()](auto ec, size_t xfer) {
+                             me->read_packet_done(ec, xfer);
+                           });
+  };
 
+  void read_packet_done(boost::system::error_code ec, [[maybe_unused]]
+                                                      size_t xfer) {
+    if (ec) return;
+
+    std::istream stream(&in_packet_);
+    std::string str;
+    stream >> str;
+
+    auto from = socket_.remote_endpoint().address().to_string();
+    from.append(":");
+    from.append(std::to_string(socket_.remote_endpoint().port()));
+    std::cout << "Read a packet from " << from << ": "<< str << std::endl;
+
+    read_packet();
+  }
+
+  [[maybe_unused]] asio::io_context& service_;
+  tcp::socket socket_;
+  asio::io_service::strand write_strand_;
+  asio::streambuf in_packet_;
+  std::deque<std::string> send_packet_queue_;
+};
 
 auto main(int argc, char** argv) -> int {
   try {
+
+    
     const std::unordered_map<std::string, greeter::LanguageCode> languages{
       {"en", greeter::LanguageCode::EN},
       {"de", greeter::LanguageCode::DE},
@@ -137,11 +144,8 @@ auto main(int argc, char** argv) -> int {
     }
 
     if (result["server"].as<bool>()) {
-      auto const port = static_cast<unsigned short>(std::atoi("8080"));
-      net::io_context ioc{1};
-
-      server srv(ioc, port);
-      ioc.run();
+      asio_generic_server<chat_handler> server{};
+      server.start_server(8888);
     }
 
     greeter::Greeter greeter(name);
