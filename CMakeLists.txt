@@ -6,6 +6,10 @@ if(GREETER_DOCS)
   return()
 endif()
 
+if(GREETER_DEV)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
+
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "./include/*.h")
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "./src/libgreeter/*.cpp")
 add_library(Greeter ${headers} ${sources})
@@ -24,18 +28,24 @@ file(GLOB sources CONFIGURE_DEPENDS "./src/greeter/*.cpp")
 add_executable(GreeterExec ${sources})
 set_target_properties(GreeterExec PROPERTIES CXX_STANDARD 17 OUTPUT_NAME
   "Greeter")
-target_link_libraries(GreeterExec PRIVATE Greeter cxxopts::cxxopts)
+target_link_libraries(GreeterExec
+  PRIVATE Greeter cxxopts::cxxopts pantor::inja Boost::asio Boost::beast)
 
 if(NOT GREETER_DEV)
   find_package(cxxopts REQUIRED)
   find_package(fmt REQUIRED)
+  find_package(inja REQUIRED)
 
-  # Boost needs this, since system installed Boost doesn't bring in
-  # targets like Boost::asio, which the dev
+  # Boost needs this, since find_package(Boost) doesn't bring in Cmake
+  # targets like 'Boost::asio' for its header-only libraries, but
+  # CPM-fetched Boost does.  So, in the interest of referring to these
+  # targets by the same names, consitently.  Make a dummy target and
+  # alias to it.
   find_package(Boost REQUIRED)
-  add_library(BoostAsioProxy INTERFACE)
-  target_link_libraries(BoostAsioProxy INTERFACE ${Boost_LIBRARIES})
-  add_library(Boost::asio ALIAS BoostAsioProxy)
+  add_library(BoostDummy INTERFACE)
+  target_link_libraries(BoostDummy INTERFACE)
+  add_library(Boost::asio ALIAS BoostDummy)
+  add_library(Boost::beast ALIAS BoostDummy)
 
   # Installation code will come here.  For now that important target
   # is completely absent..
@@ -60,18 +70,23 @@ endif()
 
 CPMAddPackage("gh:TheLartians/Ccache.cmake@1.2.3")
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 CPMAddPackage(
   NAME fmt GIT_TAG 10.2.1 GITHUB_REPOSITORY fmtlib/fmt
 )
+
+CPMAddPackage(
+  NAME inja GIT_TAG v3.4.0 GITHUB_REPOSITORY pantor/inja
+  OPTIONS "INJA_INSTALL OFF" "INJA_EXPORT OFF" "BUILD_TESTING OFF" "BUILD_BENCHMARK OFF"
+)
+
 CPMAddPackage(
   NAME Boost
   VERSION 1.84.0
   URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
   URL_HASH SHA256=2e64e5d79a738d0fa6fb546c6e5c2bd28f88d268a2a080546f74e5ff98f29d0e
-  OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES process\\\;asio" # Note the escapes!
+  OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES process\\\;asio\\\;beast" # Note the escapes!
 )
+
 CPMAddPackage(
   GITHUB_REPOSITORY jarro2783/cxxopts VERSION 3.0.0
   OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO"
