@@ -2,6 +2,7 @@
 #include <greeter/version.h>
 
 #include <cxxopts.hpp>
+#include <spdlog/spdlog.h>
 
 #include <boost/asio.hpp>
 #include <deque>
@@ -29,10 +30,9 @@ public:
     acceptor_.set_option(tcp::acceptor::reuse_address(true));
     acceptor_.bind(endpoint);
     acceptor_.listen();
-    std::cerr << "Should be listening on " << std::to_string(port) << "\n";
+    spdlog::info("Should be listening on {}", port);
 
     acceptor_.async_accept(handler->socket(), [=](auto ec) {
-      std::cerr << "Handling new conn!\n";
       handle_new_connection(handler, ec);
     });
 
@@ -46,14 +46,24 @@ public:
 private:
   void handle_new_connection(shared_handler_t handler,
                              boost::system::error_code const& error) {
-    if (error) return;
+    if (error) {
+      spdlog::info("Returning from handle_new_connection()");
+      return;
+    }
+
+    auto ep = handler->socket().remote_endpoint();
+    spdlog::info("Handling new connection from {}:{}",
+                 ep.address().to_string(),
+                 ep.port());
+
 
     handler->start();
 
     auto new_handler = std::make_shared<ConnectionHandler>(io_service_);
 
+    spdlog::info("Initiating another async_accept()");
     acceptor_.async_accept(new_handler->socket(), [=](auto ec) {
-      handle_new_connection(handler, ec);
+      handle_new_connection(new_handler, ec);
     });
   }
   int thread_count_;
@@ -71,7 +81,8 @@ public:
 
 private:
   void read_packet(){
-    asio::async_read_until(socket_, in_packet_, '\0',
+    spdlog::info("Will try to read a packet till EOL");
+    asio::async_read_until(socket_, in_packet_, '\n',
                            [me = shared_from_this()](auto ec, size_t xfer) {
                              me->read_packet_done(ec, xfer);
                            });
@@ -79,16 +90,16 @@ private:
 
   void read_packet_done(boost::system::error_code ec, [[maybe_unused]]
                                                       size_t xfer) {
-    if (ec) return;
+    if (ec) {
+      spdlog::info("Returning from read_packet_done()");
+      return;
+    }
 
     std::istream stream(&in_packet_);
     std::string str;
     stream >> str;
 
-    auto from = socket_.remote_endpoint().address().to_string();
-    from.append(":");
-    from.append(std::to_string(socket_.remote_endpoint().port()));
-    std::cout << "Read a packet from " << from << ": "<< str << std::endl;
+    spdlog::info("Read a packet '{}'", str);
 
     read_packet();
   }
