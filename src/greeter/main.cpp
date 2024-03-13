@@ -1,6 +1,7 @@
 #include <greeter/greeter.h>
 #include <greeter/version.h>
 
+#include <atomic>
 #include <cxxopts.hpp>
 #include <spdlog/spdlog.h>
 
@@ -8,6 +9,7 @@
 #include <deque>
 #include <istream>
 #include <memory>
+#include <thread>
 
 namespace asio = boost::asio;
 using tcp = boost::asio::ip::tcp;
@@ -20,11 +22,9 @@ template <typename ConnectionHandler> class asio_generic_server {
 
 public:
   asio_generic_server(int thread_count = 1)
-  : thread_count_(thread_count), acceptor_(io_service_) {}
+  : thread_count_(thread_count), acceptor_(ctx_) {}
 
   void start_server([[maybe_unused]] uint16_t port) {
-    auto handler = std::make_shared<ConnectionHandler>(io_service_);
-
     tcp::endpoint endpoint{tcp::v4(), port};
     acceptor_.open(endpoint.protocol());
     acceptor_.set_option(tcp::acceptor::reuse_address(true));
@@ -32,50 +32,53 @@ public:
     acceptor_.listen();
     spdlog::info("Should be listening on {}", port);
 
-    acceptor_.async_accept(handler->socket(), [=](auto ec) {
-      handle_new_connection(handler, ec);
-    });
+    for (int i = 0; i < thread_count_; ++i) {
+      thread_pool_.emplace_back([=]{ctx_.run();});
+    }
+  }
 
-
-    io_service_.run();
-    // for (int i = 0; i < thread_count_; ++i) {
-    //   thread_pool_.emplace_back([=]{});
-    // }
+  void stop_server() {
+    ctx_.stop();
+    for (auto& thread : thread_pool_)
+      if (thread.joinable()) thread.join();
+    thread_pool_.clear();
   }
 
 private:
-  void handle_new_connection(shared_handler_t handler,
+  void accept() {
+    acceptor_.async_accept([=](auto ec, auto connsocket) {
+      handle_new_connection(std::move(connsocket), ec);
+    });
+  }
+  template <typename Socket>
+  void handle_new_connection(Socket&& connsocket,
                              boost::system::error_code const& error) {
+    auto ep = connsocket.remote_endpoint();
+    spdlog::info("Handling new connection from {}:{}",
+                 ep.address().to_string(),
+                 ep.port());
+    auto handler = std::make_shared<ConnectionHandler>(ctx_,
+                                                       std::move(connsocket));
+
     if (error) {
       spdlog::info("Returning from handle_new_connection()");
       return;
     }
 
-    auto ep = handler->socket().remote_endpoint();
-    spdlog::info("Handling new connection from {}:{}",
-                 ep.address().to_string(),
-                 ep.port());
-
-
     handler->start();
 
-    auto new_handler = std::make_shared<ConnectionHandler>(io_service_);
-
-    spdlog::info("Initiating another async_accept()");
-    acceptor_.async_accept(new_handler->socket(), [=](auto ec) {
-      handle_new_connection(new_handler, ec);
-    });
+    accept();
   }
   int thread_count_;
   std::vector<std::thread> thread_pool_;
-  asio::io_context io_service_;
+  asio::io_context ctx_;
   tcp::acceptor acceptor_;
 };
 
 class chat_handler : public std::enable_shared_from_this<chat_handler> {
 public:
-  chat_handler(asio::io_context& service)
-  : service_(service), socket_(service), write_strand_(service) {}
+  chat_handler(asio::io_context& ctx, tcp::socket&& socket)
+  : ctx_(ctx), socket_{std::move(socket)}, write_strand_(ctx) {}
   tcp::socket& socket() { return socket_; }
   void start() { read_packet(); }
 
@@ -102,14 +105,17 @@ private:
     spdlog::info("Read a packet '{}'", str);
 
     read_packet();
+
   }
 
-  [[maybe_unused]] asio::io_context& service_;
+  [[maybe_unused]] asio::io_context& ctx_;
   tcp::socket socket_;
   asio::io_service::strand write_strand_;
   asio::streambuf in_packet_;
   std::deque<std::string> send_packet_queue_;
 };
+
+std::atomic<bool> server_shutdown = false;
 
 auto main(int argc, char** argv) -> int {
   try {
@@ -157,6 +163,23 @@ auto main(int argc, char** argv) -> int {
     if (result["server"].as<bool>()) {
       asio_generic_server<chat_handler> server{};
       server.start_server(8888);
+
+      auto signal_handler = [](int signal) {
+        spdlog::info("Received {}, going to stop", signal);
+        server_shutdown = true;
+      };
+
+      // Setup signal handling for graceful shutdown
+      signal(SIGINT, signal_handler);
+      signal(SIGTERM, signal_handler);
+
+      while (!server_shutdown) {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1s);
+      }
+      spdlog::info("Stopping");
+      server.stop_server();
+      exit(0);
     }
 
     greeter::Greeter greeter(name);
