@@ -87,7 +87,7 @@ public:
 private:
   void read_packet(){
     spdlog::info("Will try to read a packet till EOL");
-    asio::async_read_until(socket_, in_packet_, '\n',
+    asio::async_read_until(socket_, in_packet_, '\0',
                            [me = shared_from_this()](auto ec, size_t xfer) {
                              me->read_packet_done(ec, xfer);
                            });

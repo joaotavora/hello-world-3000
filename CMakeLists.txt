@@ -35,6 +35,7 @@ if(NOT GREETER_DEV)
   find_package(cxxopts REQUIRED)
   find_package(fmt REQUIRED)
   find_package(inja REQUIRED)
+  find_package(spdlog REQUIRED)
 
   # Boost needs this, since find_package(Boost) doesn't bring in Cmake
   # targets like 'Boost::asio' for its header-only libraries, but
@@ -91,6 +92,8 @@ CPMAddPackage(
   GITHUB_REPOSITORY jarro2783/cxxopts VERSION 3.0.0
   OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO"
   "CXXOPTS_GREETER_INSTALL YES")
+
+CPMAddPackage("gh:gabime/spdlog@1.8.2")
 
 option(GREETER_COVERAGE "Enable test coverage" OFF)
 
