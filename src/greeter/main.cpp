@@ -32,6 +32,8 @@ public:
     acceptor_.listen();
     spdlog::info("Should be listening on {}", port);
 
+    accept();
+
     for (int i = 0; i < thread_count_; ++i) {
       thread_pool_.emplace_back([=]{ctx_.run();});
     }
