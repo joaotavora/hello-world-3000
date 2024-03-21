@@ -24,7 +24,7 @@ std::string Greeter::greet(LanguageCode lang) const {
 
 void greeter::chat_session::read_msg() {
   asio::async_read_until(
-      socket_, streambuf_, "\r\n",
+      socket_, streambuf_, "\n",
       [this, self = shared_from_this()](boost::system::error_code ec,
                                         std::size_t) {
         spdlog::info("Yeah got something...!");
@@ -91,10 +91,13 @@ void greeter::chat_server::start(uint16_t port) {
 }
 
 void greeter::chat_server::stop() {
-  ctx_.stop();
-  for (auto& thread : thread_pool_)
-    if (thread.joinable()) thread.join();
-  thread_pool_.clear();
+  if (!ctx_.stopped()) {
+    ctx_.stop();
+
+    for (auto& thread : thread_pool_)
+      if (thread.joinable()) thread.join();
+    thread_pool_.clear();
+  }
 }
 
 void greeter::chat_room::deliver(const chat_message& msg) {
