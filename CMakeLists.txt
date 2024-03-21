@@ -29,12 +29,11 @@ add_executable(GreeterExec ${sources})
 set_target_properties(GreeterExec PROPERTIES CXX_STANDARD 17 OUTPUT_NAME
   "Greeter")
 target_link_libraries(GreeterExec
-  PRIVATE Greeter cxxopts::cxxopts pantor::inja Boost::asio Boost::beast)
+  PRIVATE Greeter cxxopts::cxxopts Boost::asio)
 
 if(NOT GREETER_DEV)
   find_package(cxxopts REQUIRED)
   find_package(fmt REQUIRED)
-  find_package(inja REQUIRED)
   find_package(spdlog REQUIRED)
 
   # Boost needs this, since find_package(Boost) doesn't bring in Cmake
@@ -46,7 +45,6 @@ if(NOT GREETER_DEV)
   add_library(BoostDummy INTERFACE)
   target_link_libraries(BoostDummy INTERFACE)
   add_library(Boost::asio ALIAS BoostDummy)
-  add_library(Boost::beast ALIAS BoostDummy)
 
   # Installation code will come here.  For now that important target
   # is completely absent..
@@ -76,16 +74,11 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
-  NAME inja GIT_TAG v3.4.0 GITHUB_REPOSITORY pantor/inja
-  OPTIONS "INJA_INSTALL OFF" "INJA_EXPORT OFF" "BUILD_TESTING OFF" "BUILD_BENCHMARK OFF"
-)
-
-CPMAddPackage(
   NAME Boost
   VERSION 1.84.0
   URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
   URL_HASH SHA256=2e64e5d79a738d0fa6fb546c6e5c2bd28f88d268a2a080546f74e5ff98f29d0e
-  OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES process\\\;asio\\\;beast" # Note the escapes!
+  OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES process\\\;asio\\\;process" # Note the escapes!
 )
 
 CPMAddPackage(
@@ -101,7 +94,7 @@ CPMAddPackage("gh:doctest/doctest@2.4.9")
 
 file(GLOB sources CONFIGURE_DEPENDS "./test/*.cpp")
 add_executable(GreeterTests ${sources})
-target_link_libraries(GreeterTests doctest::doctest Greeter)
+target_link_libraries(GreeterTests doctest::doctest Greeter Boost::asio Boost::process)
 set_target_properties(GreeterTests PROPERTIES CXX_STANDARD 17)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES
