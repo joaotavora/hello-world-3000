@@ -12,10 +12,20 @@ if(MSVC)
     add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Add SIMD-related compiler options globally
+    if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-march=native>")
+    elseif(MSVC)
+        # For MSVC, you can use "/arch:AVX2" for example, instead of "-march=native"
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/arch:AVX2>")
+    endif()
+endif()
+
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "./include/*.h")
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "./src/libgreeter/*.cpp")
 add_library(Greeter ${headers} ${sources})
-set_target_properties(Greeter PROPERTIES CXX_STANDARD 20)
+set_target_properties(Greeter PROPERTIES CXX_STANDARD 23)
 target_compile_options(
   Greeter PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 target_include_directories(
@@ -23,25 +33,18 @@ target_include_directories(
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-target_link_libraries(Greeter PRIVATE fmt::fmt Boost::asio)
+target_link_libraries(Greeter PRIVATE fmt::fmt spdlog::spdlog)
 configure_file(include/greeter/version.h.in include/greeter/version.h @ONLY)
 
 file(GLOB sources CONFIGURE_DEPENDS "./src/greeter/*.cpp")
 add_executable(GreeterExec ${sources})
-set_target_properties(GreeterExec PROPERTIES CXX_STANDARD 20 OUTPUT_NAME
+set_target_properties(GreeterExec PROPERTIES CXX_STANDARD 23 OUTPUT_NAME
   "Greeter")
-target_link_libraries(GreeterExec PRIVATE Greeter cxxopts::cxxopts)
+target_link_libraries(GreeterExec PRIVATE Greeter cxxopts::cxxopts fmt::fmt spdlog::spdlog)
 
 if(NOT GREETER_DEV)
   find_package(cxxopts REQUIRED)
   find_package(fmt REQUIRED)
-
-  # Boost needs this, since system installed Boost doesn't bring in
-  # targets like Boost::asio, which the dev
-  find_package(Boost REQUIRED)
-  add_library(BoostAsioProxy INTERFACE)
-  target_link_libraries(BoostAsioProxy INTERFACE ${Boost_LIBRARIES})
-  add_library(Boost::asio ALIAS BoostAsioProxy)
 
   # Installation code will come here.  For now that important target
   # is completely absent..
@@ -56,8 +59,7 @@ set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
 set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")
 include(cmake/CPM.cmake)
 
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
-  message("USE_SANITIZER is '${USE_SANITIZER}'")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   CPMAddPackage(
     "gh:StableCoder/cmake-scripts#1f822d1fc87c8d7720c074cde8a278b44963c354")
   # There are more tools here, but let's just use the sanitizer
@@ -66,18 +68,13 @@ endif()
 
 CPMAddPackage("gh:TheLartians/Ccache.cmake@1.2.3")
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+CPMAddPackage("gh:fmtlib/fmt#7.1.3") 
+CPMAddPackage(
+  GITHUB_REPOSITORY gabime/spdlog 
+  VERSION 1.8.2 
+  OPTIONS "SPDLOG_FMT_EXTERNAL 1"
+)
 
-CPMAddPackage(
-  NAME fmt GIT_TAG 10.2.1 GITHUB_REPOSITORY fmtlib/fmt
-)
-CPMAddPackage(
-  NAME Boost
-  VERSION 1.84.0
-  URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
-  URL_HASH SHA256=2e64e5d79a738d0fa6fb546c6e5c2bd28f88d268a2a080546f74e5ff98f29d0e
-  OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES process\\\;asio" # Note the escapes!
-)
 CPMAddPackage(
   GITHUB_REPOSITORY jarro2783/cxxopts VERSION 3.0.0
   OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO"
@@ -90,7 +87,7 @@ CPMAddPackage("gh:doctest/doctest@2.4.9")
 file(GLOB sources CONFIGURE_DEPENDS "./test/*.cpp")
 add_executable(GreeterTests ${sources})
 target_link_libraries(GreeterTests doctest::doctest Greeter)
-set_target_properties(GreeterTests PROPERTIES CXX_STANDARD 20)
+set_target_properties(GreeterTests PROPERTIES CXX_STANDARD 23)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES
     "GNU")

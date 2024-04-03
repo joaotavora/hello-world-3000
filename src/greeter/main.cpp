@@ -1,53 +1,40 @@
-#include <greeter/greeter.h>
-#include <greeter/version.h>
+// #include <fmt/format.h>
+#include <fmt/chrono.h>
+#include <spdlog/spdlog.h>
 
-#include <cxxopts.hpp>
-#include <iostream>
-#include <string>
-#include <unordered_map>
+#include <chrono>
+#include <cmath>
+#include <filesystem>
+#include <future>
+#include <greeter/__generator.hpp>
 
-auto main(int argc, char** argv) -> int {
-  const std::unordered_map<std::string, greeter::LanguageCode> languages{
-      {"en", greeter::LanguageCode::EN},
-      {"de", greeter::LanguageCode::DE},
-      {"es", greeter::LanguageCode::ES},
-      {"fr", greeter::LanguageCode::FR},
-  };
+namespace fs = std::filesystem;
 
-  cxxopts::Options options(*argv, "A program to welcome the world!");
+std::vector<fs::directory_entry> regulars;
 
-  std::string language;
-  std::string name;
-
-  // clang-format off
-  options.add_options()
-    ("h,help", "Show help")
-    ("v,version", "Print the current version number")
-    ("n,name", "Name to greet", cxxopts::value(name)->default_value("World"))
-    ("l,lang", "Language code to use", cxxopts::value(language)->default_value("en"))
-  ;
-  // clang-format on
-
-  auto result = options.parse(argc, argv);
-
-  if (result["help"].as<bool>()) {
-    std::cout << options.help() << std::endl;
-    return 0;
+void list_dir(fs::directory_entry dentry) {
+  std::vector<std::future<void>> futures;
+  spdlog::info("Looking at {}", dentry.path().string());
+  for (const auto& e : std::filesystem::directory_iterator(dentry)) {
+    if (e.path().filename() == ".git") continue;
+    if (e.is_directory()) {
+      auto ftr = std::async(std::launch::async, list_dir, e);
+      futures.push_back(std::move(ftr));
+    } else {
+      regulars.push_back(e);
+    }
   }
+  for (auto& f : futures) f.wait();
+}
 
-  if (result["version"].as<bool>()) {
-    std::cout << "Greeter, version " << GREETER_VERSION << std::endl;
-    return 0;
-  }
+int main() {
+  auto start = std::chrono::system_clock::now();
 
-  auto langIt = languages.find(language);
-  if (langIt == languages.end()) {
-    std::cerr << "unknown language code: " << language << std::endl;
-    return 1;
-  }
+  list_dir(fs::directory_entry{"c:/repo/tsw"});
 
-  greeter::Greeter greeter(name);
-  std::cout << greeter.greet(langIt->second) << std::endl;
+  auto took = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::system_clock::now() - start);
 
+  spdlog::info("Vector complete, took {}", took);
   return 0;
 }
