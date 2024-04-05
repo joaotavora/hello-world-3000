@@ -42,7 +42,7 @@ doc: phony
 	cmake -DGREETER_DOCS=ON -S. -B build-docs
 	cmake --build build-docs --target GreeterDocs
 
-compile_commands.json: build-debug
+compile_commands.json: configure-debug
 	ln -sf build-debug/compile_commands.json compile_commands.json
 
 check-format: phony

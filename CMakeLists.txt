@@ -6,10 +6,16 @@ if(GREETER_DOCS)
   return()
 endif()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(MSVC)
+    add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
+endif()
+
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "./include/*.h")
 file(GLOB_RECURSE sources CONFIGURE_DEPENDS "./src/libgreeter/*.cpp")
 add_library(Greeter ${headers} ${sources})
-set_target_properties(Greeter PROPERTIES CXX_STANDARD 17)
+set_target_properties(Greeter PROPERTIES CXX_STANDARD 20)
 target_compile_options(
   Greeter PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 target_include_directories(
@@ -22,7 +28,7 @@ configure_file(include/greeter/version.h.in include/greeter/version.h @ONLY)
 
 file(GLOB sources CONFIGURE_DEPENDS "./src/greeter/*.cpp")
 add_executable(GreeterExec ${sources})
-set_target_properties(GreeterExec PROPERTIES CXX_STANDARD 17 OUTPUT_NAME
+set_target_properties(GreeterExec PROPERTIES CXX_STANDARD 20 OUTPUT_NAME
   "Greeter")
 target_link_libraries(GreeterExec PRIVATE Greeter cxxopts::cxxopts)
 
@@ -84,7 +90,7 @@ CPMAddPackage("gh:doctest/doctest@2.4.9")
 file(GLOB sources CONFIGURE_DEPENDS "./test/*.cpp")
 add_executable(GreeterTests ${sources})
 target_link_libraries(GreeterTests doctest::doctest Greeter)
-set_target_properties(GreeterTests PROPERTIES CXX_STANDARD 17)
+set_target_properties(GreeterTests PROPERTIES CXX_STANDARD 20)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES
     "GNU")
