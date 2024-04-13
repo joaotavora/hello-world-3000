@@ -6,10 +6,8 @@ if(GREETER_DOCS)
   return()
 endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-if(MSVC)
-    add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
+if(GREETER_DEV)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS "./include/*.h")
@@ -30,18 +28,22 @@ file(GLOB sources CONFIGURE_DEPENDS "./src/greeter/*.cpp")
 add_executable(GreeterExec ${sources})
 set_target_properties(GreeterExec PROPERTIES CXX_STANDARD 20 OUTPUT_NAME
   "Greeter")
-target_link_libraries(GreeterExec PRIVATE Greeter cxxopts::cxxopts)
+target_link_libraries(GreeterExec PRIVATE Greeter cxxopts::cxxopts Boost::asio)
 
 if(NOT GREETER_DEV)
   find_package(cxxopts REQUIRED)
   find_package(fmt REQUIRED)
 
-  # Boost needs this, since system installed Boost doesn't bring in
-  # targets like Boost::asio, which the dev
+  # Boost needs this, since find_package(Boost) doesn't bring in Cmake
+  # targets like 'Boost::asio' for its header-only libraries, but
+  # CPM-fetched Boost does.  So, in the interest of referring to these
+  # targets by the same names, consitently, make a dummy target and
+  # alias to it.
   find_package(Boost REQUIRED)
-  add_library(BoostAsioProxy INTERFACE)
-  target_link_libraries(BoostAsioProxy INTERFACE ${Boost_LIBRARIES})
-  add_library(Boost::asio ALIAS BoostAsioProxy)
+  add_library(BoostDummy INTERFACE)
+  target_link_libraries(BoostDummy INTERFACE)
+  add_library(Boost::asio ALIAS BoostDummy)
+  # add_library(Boost::beast ALIAS BoostDummy)
 
   # Installation code will come here.  For now that important target
   # is completely absent..
@@ -57,6 +59,7 @@ set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")
 include(cmake/CPM.cmake)
 
 if(CMAKE_BUILD_TYPE EQUAL "Debug")
+  set("USE_SANITIZER" "Address")
   message("USE_SANITIZER is '${USE_SANITIZER}'")
   CPMAddPackage(
     "gh:StableCoder/cmake-scripts#1f822d1fc87c8d7720c074cde8a278b44963c354")
@@ -65,8 +68,6 @@ if(CMAKE_BUILD_TYPE EQUAL "Debug")
 endif()
 
 CPMAddPackage("gh:TheLartians/Ccache.cmake@1.2.3")
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 CPMAddPackage(
   NAME fmt GIT_TAG 10.2.1 GITHUB_REPOSITORY fmtlib/fmt
