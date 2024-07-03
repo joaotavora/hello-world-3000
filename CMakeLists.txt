@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14...3.22)
+cmake_minimum_required(VERSION 3.14...3.30)
 project(Greeter VERSION 1.0.0 LANGUAGES CXX)
 
 if(GREETER_DOCS)
