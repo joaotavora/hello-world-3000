@@ -8,6 +8,7 @@ mkdir -p ./include/${1,,}
 mv ./src/greeter/main.cpp ./src/${1,,}/main.cpp
 mv ./src/libgreeter/greeter.cpp ./src/lib${1,,}/${1,,}.cpp
 mv ./include/greeter/greeter.h ./include/${1,,}/${1,,}.h
+mv ./include/greeter/version.h.in ./include/${1,,}/version.h.in
 mv ./test/greeter.cpp ./test/${1,,}.cpp
 rmdir ./src/greeter
 rmdir ./src/libgreeter
