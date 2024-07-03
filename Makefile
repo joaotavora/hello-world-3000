@@ -17,7 +17,7 @@ watch-%: phony
 	find CMakeLists.txt src include test -type f | entr -r -s 'make check-$*'
 
 check-%: build-% phony
-	ctest --test-dir build-$* --output-on-failure ${CTEST_OPTIONS}
+	ctest --test-dir build-$* --output-on-failure ${SELECTOR}
 
 coverage-%: CMAKE_FLAGS+=-DGREETER_COVERAGE=ON
 coverage-%: check-%
