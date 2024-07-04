@@ -8,32 +8,31 @@
 # Hello World 3000
 
 Modern C++ project template forked from
-[ModernCppStarter][modern-cpp-starter], but without pushing
-[CPM.cmake][cpm-cmake] so much.
+[ModernCppStarter][modern-cpp-starter], but trying to push
+[CPM.cmake][cpm-cmake] a bit less.
 
 ## Dual-Use CMakeLists.txt
 
-`CMakeLists.txt` is crafted to serve both developers and
-non-developers.
+`CMakeLists.txt` is crafted to different consumers:
 
-- For non-developer end users who want to try out the library or the
-  program it ensures that they can build and run the project in typical
-  fashion for a *nix project.  Download the code, `make configure`,
-  `make build`, `make install` (the latter isn't supported yet).  For
+- End users who want to try out the library or the program.  They can
+  build and run the project in the classic fashion of `make && make
+  install` (the latter isn't supported yet, tho).
+
+- This project's devs who want to hack on it.  Here there are features
+  like sanitizers, unit testing, `ccache`, code coverage dependency
+  management through [CPM.cmake][cpm-cmake].  For now, I find CPM
+  easier than Conan or vcpkg.  But I guess in the future I will get
+  rid of it: having the dev team use system-installed dependencies
+  isn't terrible either.  A good entry point is `make check-debug`.
   
-- For developer end users who want to link against this library by
-  bundling it into their project however they see fit (git submodule,
-  CPM.cmake, package manager), they should in theory only need to call
-  'add_subdirectory()' and they will have the the Greeter, GreeterExec
-  targets available.
-
-- For developers of the library, on the other hand, there are
-  additional features like sanitizers, unit testing, `ccache`, code
-  coverage dependency management through [CPM.cmake][cpm-cmake].  For
-  now, I find this easier than Conan or vcpkg.
-
-The project is set up to encourage Test-Driven Development (TDD) just
-like [ModernCppStarter][modern-cpp-starter].
+- The CI, who is a bit like a special project dev.
+  
+- Other project devs who want "vendor" this library with their project
+  however they see fit (`git submodule`, `FetchContent`, other). In
+  theory they need call `add_subdirectory(<this very dir>)` and they
+  will have the Greeter, GreeterExec targets available to link against
+  in their `CMakeLists.txt`.
 
 ## Project Structure
 
@@ -44,6 +43,8 @@ like [ModernCppStarter][modern-cpp-starter].
 
 * `/doc`: For project documentation, supporting immediate and easy
   documentation generation.
+
+* `/.github`: GitHub CI stuff.
 
 * `CMakeLists.txt`: Configures both developer and non-developer
   builds, ensuring that the project can be easily built in different
@@ -72,13 +73,21 @@ fmt).
 
 ### Building the Project
 
-1. **For Non-Developers**: 
+1. **For users**: 
    - Execute `make build` for building the project.
    - Use `make install` to install (currently not supported).
 
-2. **For Developers**: 
+2. **For developers**: 
    - Use `make configure-release` or `make configure-debug` for configuring the project.
    - Build with `make build-release` or `make build-debug`.
+   - Run tests with `make check-debug`.  `CTEST_OPTIONS` may be used
+     to pass additional things to `ctest`, like test-filtering
+     regexps.
+   - Run coverage with `make coverage-debug`.
+   - See `Makefile` for more tests
+
+3. **For other projects wanting to vendor this project**
+   - TODO
 
 ### Running Tests
 

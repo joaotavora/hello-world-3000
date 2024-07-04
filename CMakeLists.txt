@@ -57,17 +57,9 @@ endif()
 set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
 set(CPM_SOURCE_CACHE "$ENV{HOME}/.cache/CPM")
 include(cmake/CPM.cmake)
-
-if(CMAKE_BUILD_TYPE EQUAL "Debug")
-  set("USE_SANITIZER" "Address")
-  message("USE_SANITIZER is '${USE_SANITIZER}'")
-  CPMAddPackage(
-    "gh:StableCoder/cmake-scripts#1f822d1fc87c8d7720c074cde8a278b44963c354")
-  # There are more tools here, but let's just use the sanitizer
-  include(${cmake-scripts_SOURCE_DIR}/sanitizers.cmake)
-endif()
-
-CPMAddPackage("gh:TheLartians/Ccache.cmake@1.2.3")
+include(cmake/sanitizers.cmake)
+include(cmake/ccache.cmake)
+include(cmake/coverage.cmake)
 
 CPMAddPackage(
   NAME fmt GIT_TAG 10.2.1 GITHUB_REPOSITORY fmtlib/fmt
@@ -83,8 +75,6 @@ CPMAddPackage(
   GITHUB_REPOSITORY jarro2783/cxxopts VERSION 3.0.0
   OPTIONS "CXXOPTS_BUILD_EXAMPLES NO" "CXXOPTS_BUILD_TESTS NO"
   "CXXOPTS_GREETER_INSTALL YES")
-
-option(GREETER_COVERAGE "Enable test coverage" OFF)
 
 CPMAddPackage("gh:doctest/doctest@2.4.9")
 
@@ -107,7 +97,3 @@ doctest_discover_tests(GreeterTests)
 enable_testing()
 add_test(NAME GreeterTests COMMAND GreeterTests)
 
-if(GREETER_COVERAGE)
-  target_compile_options(Greeter PUBLIC -O0 -g -fprofile-arcs -ftest-coverage)
-  target_link_options(Greeter PUBLIC -fprofile-arcs -ftest-coverage)
-endif()

@@ -5,7 +5,9 @@ install: install-nodev
 
 # Targets for devs and CI (dependencies fetched via CPM.cmake)
 configure-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -DGREETER_DEV=ON
-configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGREETER_DEV=ON -DGREETER_COVERAGE=ON
+configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGREETER_DEV=ON \
+                 -DUSE_SANITIZER=Address \
+                 -DUSE_CCACHE=ON
 
 configure-%: phony
 	cmake $(CMAKE_FLAGS) -S. -B build-$*
@@ -19,7 +21,7 @@ watch-%: phony
 check-%: build-% phony
 	ctest --test-dir build-$* --output-on-failure ${CTEST_OPTIONS}
 
-coverage-%: CMAKE_FLAGS+=-DGREETER_COVERAGE=ON
+coverage-%: CMAKE_FLAGS+=-DUSE_COVERAGE=ON
 coverage-%: check-%
 	./build-debug/Greeter
 	./build-debug/Greeter -l martian || true
