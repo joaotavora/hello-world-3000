@@ -20,11 +20,10 @@ Modern C++ project template forked from
   install` (the latter isn't supported yet, tho).
 
 - This project's devs who want to hack on it.  Here there are features
-  like sanitizers, unit testing, `ccache`, code coverage dependency
-  management through [CPM.cmake][cpm-cmake].  For now, I find CPM
-  easier than Conan or vcpkg.  But I guess in the future I will get
-  rid of it: having the dev team use system-installed dependencies
-  isn't terrible either.  A good entry point is `make check-debug`.
+  like sanitizers, unit testing, `ccache`, code coverage.  This is
+  more or less C++ package manager agnostic.  It uses `find_package`
+  for C++ packages, so install these using your system package manager
+  or Conan or something or find some way to make that work :-)
   
 - The CI, who is a bit like a special project dev.
   
