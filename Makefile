@@ -4,8 +4,8 @@ build-nodev: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release
 install: install-nodev
 
 # Targets for devs and CI (dependencies fetched via CPM.cmake)
-configure-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -DGREETER_DEV=ON
-configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGREETER_DEV=ON \
+configure-release: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Release -DGreeter_DEV=ON
+configure-debug: CMAKE_FLAGS+=-DCMAKE_BUILD_TYPE=Debug -DGreeter_DEV=ON \
                  -DUSE_SANITIZER=Address \
                  -DUSE_CCACHE=ON
 
@@ -41,7 +41,7 @@ clean: phony
 	rm -rf build*
 
 doc: phony
-	cmake -DGREETER_DOCS=ON -S. -B build-docs
+	cmake -DGreeter_DOCS=ON -S. -B build-docs
 	cmake --build build-docs --target GreeterDocs
 
 compile_commands.json: configure-debug
