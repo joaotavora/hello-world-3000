@@ -9,7 +9,7 @@ class Recipe(ConanFile):
 
     def requirements(self):
         self.requires("fmt/10.2.1")
-        self.requires("boost/1.85.0")
+        # self.requires("boost/1.85.0")
         self.requires("cxxopts/3.2.0")
 
     def build_requirements(self):

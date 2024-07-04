@@ -28,7 +28,11 @@ target_link_libraries(GreeterExec PRIVATE Greeter cxxopts::cxxopts)
 
 find_package(cxxopts REQUIRED)
 find_package(fmt REQUIRED)
-find_package(Boost REQUIRED)
+# find_package(Boost REQUIRED)
+
+get_target_property(hmmm fmt::fmt INCLUDE_DIRECTORIES)
+message(STATUS "Very strange ${hmmm}")
+
 
 include(cmake/compiler-features.cmake)
 

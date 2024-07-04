@@ -1,4 +1,4 @@
-#include <fmt/format.h>
+#include <fmt/core.h>
 #include <greeter/greeter.h>
 
 #include <boost/asio.hpp>

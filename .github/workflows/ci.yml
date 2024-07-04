@@ -12,8 +12,8 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-22.04
-
     steps:
+
     - uses: actions/checkout@v4
 
     - uses: actions/setup-python@v5
@@ -75,10 +75,13 @@ jobs:
 
     runs-on: ubuntu-22.04
 
-    env: { CXX: clang++-14 }
-
     steps:
     - uses: actions/checkout@v4
+
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.16.x'
 
     - name: Install Python
       uses: actions/setup-python@v5
@@ -94,13 +97,18 @@ jobs:
       run: bash < .github/scripts/conan-ci-setup.sh
 
     - name: Configure
+      env:
+        VERBOSE: "1"
       run: |
-           cmake -B build/sanitize                   \
-           -DCMAKE_BUILD_TYPE=Debug -DGreeter_DEV=ON \
-           -DUSE_SANITIZER=Address,Undefined         \
+           cmake -B build/sanitize                            \
+           -DCMAKE_TOOLCHAIN_FILE=conan/conan_toolchain.cmake \
+           -DCMAKE_BUILD_TYPE=Debug -DGreeter_DEV=ON          \
+           -DUSE_SANITIZER=Address,Undefined                  \
            -DUSE_CCACHE=ON
 
     - name: Build
+      env:
+        VERBOSE: "1"
       run: cmake --build build/sanitize -j 2
 
     - name: Test
